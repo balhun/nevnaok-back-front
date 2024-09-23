@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Névnapok</title>
+    <style>
+        body { background-color: burlywood; }
+
+        .container {
+            width: 60%;
+            margin: 0px auto;
+            margin-bottom: 20px;
+            border: 1px solid black;
+            border-bottom-left-radius: 10px;
+            border-bottom-right-radius: 10px;
+            background-color: white;
+        }
+
+        .title {
+            padding: 10px;
+            color: white;
+            font-size: 20pt;
+            background-color: darkgreen;
+            border-bottom: 1px solid black;
+        }
+
+        .data {
+            padding: 10px;
+        }
+
+        .piroskatt {
+            cursor: pointer;
+            color: red;
+        }
+
+        .katt {
+            cursor: pointer;
+        }
+
+        .kekkatt {
+            cursor: pointer;
+            color: blue;
+            font-weight: bold;
+        }
+
+        #honap, #nap {
+            font-size: 15pt;
+        }
+    </style>
+    <script>
+        let elozoHonap = 0;
+        let elozoNap = "nap1";
+
+        let ev = [
+            {honap:"Január", napok:31}, {honap:"Február", napok:28}, {honap:"Március", napok:31}, {honap:"Április", napok:30},
+            {honap:"Május", napok:31}, {honap:"Június", napok:30}, {honap:"Július", napok:31}, {honap:"Augusztus", napok:31},
+            {honap:"Szeptember", napok:30}, {honap:"Október", napok:31}, {honap:"November", napok:30}, {honap:"December", napok:31}
+        ];
+
+        function betoltEv() {
+            let message = "";
+            for (let i = 0; i < ev.length; i++) {
+                message += `<span id='${i}' class='katt' onclick='napKiir(${i});'>${ev[i].honap}</span>`;
+                if (i < ev.length-1) message += ", ";
+            }
+            document.getElementById("honap").innerHTML = message;
+        }
+
+        async function nev() {
+            let nev = document.getElementById("kezd").value;
+            let response = await fetch(`http://localhost:88/nev?kezd=${nev}`);
+            let json = await response.json();
+            if (json.error) {
+                document.getElementById("result").innerHTML = json.error;
+            } else {
+                document.getElementById("resultTitle").innerHTML = `Lista = Kezd:${nev}`
+                kiir(json);
+            }
+        }
+
+        async function nap(honap, nap) {
+            szinezNap(("nap"+nap));
+            let nev = document.getElementById("kezd").value;
+            let response = await fetch(`http://localhost:88/nev?nap=${('0' + honap).slice(-2)}${('0' + nap).slice(-2)}`);
+            let json = await response.json();
+            if (json.error) {
+                document.getElementById("result").innerHTML = json.error;
+            } else {
+                document.getElementById("resultTitle").innerHTML = `Lista = Dátum: ${ev[honap-1].honap} ${('0' + nap).slice(-2)}.`;
+                kiir(json);
+            }
+        }
+
+        function kiir(json) {
+            document.getElementById("result").innerHTML = "";
+            for (let sor of json) {
+                let datumok = sor.datum.split(",");
+                document.getElementById("result").innerHTML += `<span>${sor.nev} (${datumKiir(datumok)})</span><br>`
+            }
+        }
+
+        function datumKiir(datumok) {
+            let message = "";
+            for (let i = 0; i < datumok.length; i++) {
+                message += `<span class="piroskatt" onclick="nap(${datumok[i].substr(0, 2)}, ${datumok[i].substr(2, 2)})">${datumok[i].substr(0, 2)}.${datumok[i].substr(2, 2)}</span>`;
+                if (i < datumok.length-1) message += ", ";
+            }
+            return message;
+        }
+
+        function napKiir(ho) {
+            szinezHo(ho);
+            let message = "";
+            for (let i = 1; i <= ev[ho].napok; i++) {
+                message += `<span id='nap${i}' class='katt' onclick='nap(${ho+1}, ${i})'>${i}</span> `;
+            }
+            document.getElementById("nap").innerHTML = message;
+        }
+
+        function szinezHo(ho) {
+            document.getElementById(elozoHonap).setAttribute("class", "katt");
+            document.getElementById(ho).setAttribute("class", "kekkatt");
+            elozoHonap = ho;
+        }
+
+        function szinezNap(nap) {
+            if (elozoHonap != null && document.getElementById(elozoNap) != null) {
+                document.getElementById(elozoNap).setAttribute("class", "katt");
+                document.getElementById(nap).setAttribute("class", "kekkatt");
+                elozoNap = nap;
+            }
+        }
+    </script>
+</head>
+<body onload="betoltEv();">
+    <div class="container">
+        <div class="title">Nevek</div>
+        <div class="data">Kezdőbetűk: <input type="text" id="kezd"> <input type="button" value="Keres" onclick="nev();"></div>
+    </div>
+    <div class="container">
+        <div class="title">Dátum = ?</div>
+        <div class="data" id="honap"></div>
+        <div class="data" id="nap"></div>
+    </div>
+    <div class="container">
+        <div class="title" id="resultTitle">Lista = ?</div>
+        <div class="data" id="result"></div>
+    </div>
+</body>
+</html>
